@@ -45,6 +45,7 @@ app.use((req, res, next) => {
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/customers', require('./routes/customers')); // <-- ADD THIS LINE
 
 // --- Socket.IO Connection Handling ---
 io.on('connection', (socket) => {

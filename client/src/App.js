@@ -1,60 +1,119 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { io } from 'socket.io-client';
+
+// --- Page & Layout Components ---
 import LoginScreen from './components/LoginScreen';
 import RegisterScreen from './components/RegisterScreen';
 import ChatApp from './components/ChatApp';
+import CustomerPage from './components/CustomerPage';
+import Dashboard from './components/Dashboard';
+import MainLayout from './components/MainLayout';
+import AlertModal from './components/AlertModal';
 
 const App = () => {
     const [token, setToken] = useState(localStorage.getItem('token'));
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
-    const [view, setView] = useState(token && user ? 'chat' : 'login');
+    const [view, setView] = useState('dashboard');
+    const [alertInfo, setAlertInfo] = useState({ isOpen: false, message: '' });
+    const socketRef = useRef(null);
 
-    const handleLogout = () => {
-        console.log('Handling logout...');
+    // --- Authentication & State Management ---
+    const handleGlobalLogout = useCallback(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setToken(null);
         setUser(null);
-        setView('login');
-    };
+        setView('dashboard');
+    }, []);
+
+    const handleForcedLogout = useCallback(() => {
+        setToken(null);
+        setUser(null);
+        setView('dashboard');
+        setAlertInfo({ isOpen: false, message: '' });
+    }, []);
 
     const handleLogin = (data) => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         setToken(data.token);
         setUser(data.user);
-        setView('chat');
+        setView('dashboard');
+    };
+    
+    const showAlert = (message) => {
+        setAlertInfo({ isOpen: true, message: message });
     };
 
+    // --- Top-Level Effect for Socket Connection ---
+    useEffect(() => {
+        if (token) {
+            console.log('[App.js] Token found, establishing global socket connection...');
+            socketRef.current = io('http://localhost:5000', { auth: { token } });
+            const socket = socketRef.current;
+
+            socket.on('connect', () => console.log(`%c[Socket] App.js Connected: ${socket.id}`, 'color: #00ff00;'));
+            
+            socket.on('force_logout', (data) => {
+                console.log(`%c[App.js] Received 'force_logout': ${data.msg}`, 'color: #ffa500; font-weight: bold;');
+                showAlert(data.msg);
+            });
+
+            return () => {
+                console.log('[App.js] Token removed, disconnecting socket.');
+                socket.disconnect();
+            };
+        }
+    }, [token]);
+
+    // Effect for handling storage events (syncing tabs in the same browser).
     useEffect(() => {
         const handleStorageChange = (e) => {
             if (e.key === 'token' && e.newValue === null) {
-                console.log('Token removed from storage. Logging out this tab.');
-                handleLogout();
+                handleForcedLogout();
             }
         };
         
         window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [handleForcedLogout]);
 
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-        }
-    }, []);
-
-    const renderView = () => {
+    // --- View Rendering Logic ---
+    const renderMainContent = () => {
         switch(view) {
+            case 'customers':
+                return <CustomerPage />;
             case 'chat':
-                return <ChatApp currentUser={user} token={token} onLogout={handleLogout} />;
-            case 'register':
-                return <RegisterScreen onRegisterSuccess={() => setView('login')} onNavigateToLogin={() => setView('login')} />;
-            case 'login':
+                return <ChatApp currentUser={user} />;
+            case 'dashboard':
             default:
-                return <LoginScreen onLoginSuccess={handleLogin} onNavigateToRegister={() => setView('register')} />;
+                return <Dashboard currentUser={user} />;
         }
     };
 
     return (
         <div className="bg-gray-900 text-white min-h-screen font-sans antialiased">
-            {renderView()}
+            {token && user ? (
+                // If logged in, show the MainLayout
+                <MainLayout currentUser={user} activeView={view} onNavigate={setView} onLogout={handleGlobalLogout}>
+                    {renderMainContent()}
+                </MainLayout>
+            ) : (
+                // If logged out, switch between Login and Register screens based on the 'view' state
+                view === 'register' ? (
+                    <RegisterScreen 
+                        onRegisterSuccess={() => setView('login')} 
+                        onNavigateToLogin={() => setView('login')} 
+                    />
+                ) : (
+                    <LoginScreen 
+                        onLoginSuccess={handleLogin} 
+                        onNavigateToRegister={() => setView('register')} 
+                    />
+                )
+            )}
+            
+            <AlertModal isOpen={alertInfo.isOpen} message={alertInfo.message} onClose={handleForcedLogout} />
         </div>
     );
 };

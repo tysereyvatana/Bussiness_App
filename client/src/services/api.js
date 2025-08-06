@@ -1,6 +1,18 @@
 // src/services/api.js
 
-const API_URL = 'http://localhost:5000/api'; // Ensure this port matches your server's .env file
+const API_URL = 'http://localhost:5000/api'; // Ensure this port matches your server
+
+/**
+ * A helper function to get the authorization headers.
+ * @returns {object} - The headers object with the x-auth-token.
+ */
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        'x-auth-token': token,
+    };
+};
 
 /**
  * A wrapper for the fetch API that automatically handles 401 Unauthorized errors
@@ -19,32 +31,56 @@ const apiFetch = async (url, options = {}) => {
         throw new Error('Session expired. Please log in again.');
     }
     if (!res.ok) {
-        const errorData = await res.json();
+        const errorData = await res.json().catch(() => ({ msg: 'An unknown API error occurred' }));
         throw new Error(errorData.msg || 'An API error occurred');
+    }
+    // Handle responses that might not have a body, like a 204 No Content
+    if (res.status === 204) {
+        return null;
     }
     return res.json();
 };
 
+// A single object containing all our API methods, which we will export.
 export const api = {
-    login: (username, password) => apiFetch(`${API_URL}/auth/login`, {
+    // --- Auth Functions ---
+    login: (userData) => apiFetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(userData),
     }),
-    register: (username, password) => apiFetch(`${API_URL}/auth/register`, {
+    register: (userData) => apiFetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(userData),
     }),
-    getMessages: (token) => apiFetch(`${API_URL}/messages`, {
-        headers: { 'x-auth-token': token },
+
+    // --- Customer Functions ---
+    getCustomers: () => apiFetch(`${API_URL}/customers`, {
+        headers: getAuthHeaders(),
     }),
-    postMessage: (message, token) => apiFetch(`${API_URL}/messages`, {
+    addCustomer: (customerData) => apiFetch(`${API_URL}/customers`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token,
-        },
+        headers: getAuthHeaders(),
+        body: JSON.stringify(customerData),
+    }),
+    updateCustomer: (id, customerData) => apiFetch(`${API_URL}/customers/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(customerData),
+    }),
+    deleteCustomer: (id) => apiFetch(`${API_URL}/customers/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    }),
+
+    // --- Message Functions ---
+    getMessages: () => apiFetch(`${API_URL}/messages`, {
+        headers: getAuthHeaders(),
+    }),
+    postMessage: (message) => apiFetch(`${API_URL}/messages`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
         body: JSON.stringify(message),
     }),
 };

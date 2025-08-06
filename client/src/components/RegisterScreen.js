@@ -1,63 +1,88 @@
-// src/components/RegisterScreen.js
 import React, { useState } from 'react';
+// 1. Import the 'api' object
 import { api } from '../services/api';
 
 const RegisterScreen = ({ onRegisterSuccess, onNavigateToLogin }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = async (e) => {
+    const handleRegister = async (e) => {
         e.preventDefault();
+        if (password.length < 6) {
+            setError("Password must be at least 6 characters long.");
+            return;
+        }
         setError('');
-        setSuccess('');
         setIsLoading(true);
         try {
-            const data = await api.register(username, password);
-            setSuccess(data.msg + ' You can now log in.');
-            setTimeout(onRegisterSuccess, 2000);
+            // 2. Call api.register with a single object
+            await api.register({ username, password });
+            onRegisterSuccess();
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Registration failed. Please try again.');
+            console.error(err);
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen">
-            <div className="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-lg shadow-lg">
-                <h1 className="text-3xl font-bold text-center text-cyan-400">Register</h1>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {error && <p className="text-red-400 bg-red-500/20 p-3 rounded-md text-center">{error}</p>}
-                    {success && <p className="text-green-400 bg-green-500/20 p-3 rounded-md text-center">{success}</p>}
-                    <input
-                        type="text"
-                        placeholder="Username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                        required
-                    />
-                    <input
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                        required
-                    />
-                    <button type="submit" disabled={isLoading} className="w-full px-4 py-2 font-bold text-white bg-cyan-600 rounded-md hover:bg-cyan-500 disabled:bg-gray-500 transition-colors">
-                        {isLoading ? 'Registering...' : 'Register'}
-                    </button>
+        <div className="flex items-center justify-center min-h-screen bg-gray-900">
+            <div className="w-full max-w-md p-8 space-y-8 bg-gray-800 rounded-lg shadow-lg">
+                <div>
+                    <h2 className="text-3xl font-extrabold text-center text-white">
+                        Create a new account
+                    </h2>
+                </div>
+                <form className="mt-8 space-y-6" onSubmit={handleRegister}>
+                     <div className="space-y-4 rounded-md shadow-sm">
+                        <div>
+                            <input
+                                id="username"
+                                name="username"
+                                type="text"
+                                autoComplete="username"
+                                required
+                                className="w-full px-3 py-2 text-white placeholder-gray-500 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"
+                                placeholder="Username or Email"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                autoComplete="new-password"
+                                required
+                                className="w-full px-3 py-2 text-white placeholder-gray-500 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"
+                                placeholder="Password (min. 6 characters)"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {error && <p className="text-sm text-center text-red-500">{error}</p>}
+
+                    <div>
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="relative flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-cyan-600 border border-transparent rounded-md group hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:bg-gray-500"
+                        >
+                            {isLoading ? 'Creating account...' : 'Create Account'}
+                        </button>
+                    </div>
                 </form>
-                 <p className="text-center text-gray-400">
-                    Already have an account?{' '}
-                    <button onClick={onNavigateToLogin} className="font-medium text-cyan-400 hover:underline">
-                        Login
+                <div className="text-sm text-center">
+                    <button onClick={onNavigateToLogin} className="font-medium text-cyan-400 hover:text-cyan-300">
+                        Already have an account? Sign in
                     </button>
-                </p>
+                </div>
             </div>
         </div>
     );
