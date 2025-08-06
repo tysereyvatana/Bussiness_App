@@ -1,27 +1,29 @@
-// server.js
+// server/server.js
 const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
+require('dotenv').config(); // Loads environment variables from a .env file
 
 const authRoutes = require('./routes/auth');
-const messageRoutes = require('./routes/messages');
+const customerRoutes = require('./routes/customers');
+// const messageRoutes = require('./routes/messages'); // You can uncomment this if you use it
 
 const app = express();
 const server = http.createServer(app);
 
 // --- Database Setup ---
+// Establishes a connection pool to your PostgreSQL database using the URL from your .env file.
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL, // This must be correct in your .env file
+    connectionString: process.env.DATABASE_URL,
 });
 
 // --- Socket.IO Setup ---
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins for simplicity in local development
+    origin: "*", // Allows connections from any origin, useful for local development.
     methods: ["GET", "POST"]
   }
 });
@@ -32,9 +34,12 @@ app.use(cors());
 app.use(express.json()); 
 
 // This object will store the mapping of: { userId -> socketId }
+// This is used to find a user's active connection.
 const userSocketMap = {};
 
-// Middleware to make the database, io, and map available to our routes
+// --- Custom Middleware ---
+// This middleware makes the database pool, the io instance, and the user socket map
+// available to all of your API route files via the 'req' object.
 app.use((req, res, next) => {
   req.db = pool;
   req.io = io;
@@ -44,32 +49,33 @@ app.use((req, res, next) => {
 
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/customers', require('./routes/customers')); // <-- ADD THIS LINE
+app.use('/api/customers', customerRoutes);
+// app.use('/api/messages', messageRoutes);
+
 
 // --- Socket.IO Connection Handling ---
 io.on('connection', (socket) => {
     console.log(`A user connected: ${socket.id}`);
     
-    // Get the JWT token sent by the client on connection
+    // Authenticate the socket connection using the JWT token sent by the client.
     const token = socket.handshake.auth.token;
     if (token) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const userId = decoded.user.id;
             
-            // Store the new socket ID for this user, mapping the user's ID to their connection ID
+            // Store the new socket ID for this user.
             userSocketMap[userId] = socket.id;
             console.log(`User ${userId} is now associated with socket ${socket.id}`);
         } catch (error) {
             console.error('Socket authentication failed:', error.message);
-            socket.disconnect(); // Disconnect if the token is invalid
+            socket.disconnect(); // Disconnect if the token is invalid.
         }
     }
 
     socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.id}`);
-        // When a user disconnects, find them in the map and remove them
+        // When a user disconnects, find their ID in the map and remove them.
         for (const userId in userSocketMap) {
             if (userSocketMap[userId] === socket.id) {
                 delete userSocketMap[userId];
