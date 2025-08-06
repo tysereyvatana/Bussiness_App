@@ -11,11 +11,23 @@ import MainLayout from './components/MainLayout';
 import AlertModal from './components/AlertModal';
 
 const App = () => {
-    const [token, setToken] = useState(localStorage.getItem('token'));
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
-    const [view, setView] = useState('dashboard');
+    // Initialize state to null. The initial session will be loaded in an effect.
+    const [token, setToken] = useState(null);
+    const [user, setUser] = useState(null);
+    const [view, setView] = useState('login'); // Default to 'login' view
     const [alertInfo, setAlertInfo] = useState({ isOpen: false, message: '' });
     const socketRef = useRef(null);
+
+    // This effect runs once on component mount to check for an existing session.
+    useEffect(() => {
+        const storedToken = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
+        if (storedToken && storedUser) {
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+            setView('dashboard'); // If session exists, go to dashboard
+        }
+    }, []);
 
     // --- Authentication & State Management ---
     const handleGlobalLogout = useCallback(() => {
@@ -23,13 +35,13 @@ const App = () => {
         localStorage.removeItem('user');
         setToken(null);
         setUser(null);
-        setView('dashboard');
+        setView('login');
     }, []);
 
     const handleForcedLogout = useCallback(() => {
         setToken(null);
         setUser(null);
-        setView('dashboard');
+        setView('login');
         setAlertInfo({ isOpen: false, message: '' });
     }, []);
 
@@ -82,9 +94,11 @@ const App = () => {
     const renderMainContent = () => {
         switch(view) {
             case 'customers':
-                return <CustomerPage />;
+                // Pass the socket instance to the CustomerPage for real-time updates.
+                return <CustomerPage socket={socketRef.current} />;
             case 'chat':
-                return <ChatApp currentUser={user} />;
+                // Pass the socket instance to the ChatApp.
+                return <ChatApp currentUser={user} socket={socketRef.current} />;
             case 'dashboard':
             default:
                 return <Dashboard currentUser={user} />;
@@ -99,7 +113,7 @@ const App = () => {
                     {renderMainContent()}
                 </MainLayout>
             ) : (
-                // If logged out, switch between Login and Register screens based on the 'view' state
+                // If logged out, switch between Login and Register screens
                 view === 'register' ? (
                     <RegisterScreen 
                         onRegisterSuccess={() => setView('login')} 

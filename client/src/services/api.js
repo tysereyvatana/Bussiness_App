@@ -73,7 +73,17 @@ export const api = {
         method: 'DELETE',
         headers: getAuthHeaders(),
     }),
-
+    // --- UPDATE THIS FUNCTION ---
+    getCustomers: (searchTerm = '') => {
+        // Append the search term as a query parameter if it exists
+        const url = searchTerm 
+            ? `${API_URL}/customers?search=${encodeURIComponent(searchTerm)}` 
+            : `${API_URL}/customers`;
+        
+        return apiFetch(url, {
+            headers: getAuthHeaders(),
+        });
+    },
     // --- Message Functions ---
     getMessages: () => apiFetch(`${API_URL}/messages`, {
         headers: getAuthHeaders(),
