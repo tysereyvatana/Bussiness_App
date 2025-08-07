@@ -10,7 +10,8 @@ import Dashboard from './components/Dashboard';
 import MainLayout from './components/MainLayout';
 import AlertModal from './components/AlertModal';
 import ServicePage from './components/ServicePage';
-import UserManagementPage from './components/UserManagementPage'; // <-- ADD THIS IMPORT
+import UserManagementPage from './components/UserManagementPage';
+
 
 const App = () => {
     const [token, setToken] = useState(null);
@@ -86,19 +87,17 @@ const App = () => {
     const renderMainContent = () => {
         switch(view) {
             case 'customers':
-                // Pass the current user object to the CustomerPage
                 return <CustomerPage socket={socketRef.current} currentUser={user} />;
             case 'services':
-                 // Pass the current user object to the ServicePage
                 return <ServicePage socket={socketRef.current} currentUser={user} />;
-            case 'users': // <-- ADD THIS CASE
+            case 'users':
                 return <UserManagementPage socket={socketRef.current} currentUser={user} />;
             case 'chat':
                 return <ChatApp currentUser={user} socket={socketRef.current} />;
             case 'dashboard':
-                default:
-                // Pass the socket instance to the Dashboard for real-time updates.
-                    return <Dashboard currentUser={user} socket={socketRef.current} />;
+            default:
+                // Pass the setView function as the onNavigate prop
+                return <Dashboard currentUser={user} socket={socketRef.current} onNavigate={setView} />;
         }
     };
 

@@ -4,6 +4,27 @@ const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
 const bcrypt = require('bcryptjs');
 
+// Helper function to log user activities to the database.
+const logActivity = async (req, action_type, details) => {
+    const { db, io, user } = req;
+    try {
+        // First, get the username of the admin performing the action.
+        const userResult = await db.query('SELECT username FROM users WHERE id = $1', [user.id]);
+        const adminUsername = userResult.rows[0]?.username || 'Unknown Admin';
+        
+        // Insert the new activity into the 'activities' table.
+        await db.query(
+            'INSERT INTO activities (user_id, username, action_type, details) VALUES ($1, $2, $3, $4)',
+            [user.id, adminUsername, action_type, details]
+        );
+        // Notify all clients that a new activity has been logged so the feed can update.
+        io.emit('activity_updated');
+    } catch (err) {
+        console.error('Failed to log activity:', err.message);
+    }
+};
+
+// Helper function to notify clients that user data has changed.
 const notifyClientsOfUpdate = (req) => {
     if (req.io) {
         req.io.emit('users_updated');
@@ -11,6 +32,7 @@ const notifyClientsOfUpdate = (req) => {
     }
 };
 
+// --- (The GET routes for roles, statuses, and the user list are unchanged) ---
 router.get('/roles', [auth, adminAuth], async (req, res) => {
     const { db } = req;
     try {
@@ -21,7 +43,6 @@ router.get('/roles', [auth, adminAuth], async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
-
 router.get('/statuses', [auth, adminAuth], async (req, res) => {
     const { db } = req;
     try {
@@ -32,7 +53,6 @@ router.get('/statuses', [auth, adminAuth], async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
-
 router.get('/', auth, async (req, res) => {
     const { db } = req;
     const { search } = req.query;
@@ -61,6 +81,9 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
+
+// @route   PUT api/users/:id
+// @desc    Update a user
 router.put('/:id', [auth, adminAuth], async (req, res) => {
     const { db } = req;
     const { username, password, role, status } = req.body;
@@ -87,6 +110,8 @@ router.put('/:id', [auth, adminAuth], async (req, res) => {
         const { rows } = await db.query(queryText, values);
 
         if (rows.length > 0) {
+            // Log this action
+            logActivity(req, 'update_user', `Updated user profile for: ${rows[0].username}`);
             notifyClientsOfUpdate(req);
             res.json(rows[0]);
         } else {
@@ -98,6 +123,8 @@ router.put('/:id', [auth, adminAuth], async (req, res) => {
     }
 });
 
+// @route   DELETE api/users/:id
+// @desc    Delete a user
 router.delete('/:id', [auth, adminAuth], async (req, res) => {
     const { db } = req;
     const userIdToDelete = req.params.id;
@@ -107,10 +134,19 @@ router.delete('/:id', [auth, adminAuth], async (req, res) => {
     }
 
     try {
+        // Get the username before deleting for a better log message
+        const userResult = await db.query('SELECT username FROM users WHERE id = $1', [userIdToDelete]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ msg: 'User not found.' });
+        }
+        const deletedUsername = userResult.rows[0].username;
+
         const queryText = `DELETE FROM users WHERE id = $1;`;
         const result = await db.query(queryText, [userIdToDelete]);
 
         if (result.rowCount > 0) {
+            // Log this action
+            logActivity(req, 'delete_user', `Deleted user: ${deletedUsername}`);
             notifyClientsOfUpdate(req);
             res.json({ msg: 'User removed' });
         } else {
