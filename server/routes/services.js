@@ -2,7 +2,27 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 
-// Helper function to notify all clients of a data change.
+// Helper function to log user activities to the database.
+const logActivity = async (req, action_type, details) => {
+    const { db, io, user } = req;
+    try {
+        // First, get the username for the log entry.
+        const userResult = await db.query('SELECT username FROM users WHERE id = $1', [user.id]);
+        const username = userResult.rows[0]?.username || 'Unknown User';
+        
+        // Insert the new activity into the 'activities' table.
+        await db.query(
+            'INSERT INTO activities (user_id, username, action_type, details) VALUES ($1, $2, $3, $4)',
+            [user.id, username, action_type, details]
+        );
+        // Notify all clients that a new activity has been logged so the feed can update.
+        io.emit('activity_updated');
+    } catch (err) {
+        console.error('Failed to log activity:', err.message);
+    }
+};
+
+// Helper function to notify clients that service data has changed.
 const notifyClientsOfUpdate = (req) => {
     if (req.io) {
         req.io.emit('services_updated');
@@ -65,6 +85,8 @@ router.post('/', auth, async (req, res) => {
         const values = [req.user.id, name, description, price, status];
         const { rows } = await db.query(queryText, values);
         
+        // Log this action
+        logActivity(req, 'create_service', `Created a new service: ${rows[0].name}`);
         notifyClientsOfUpdate(req);
         res.status(201).json(rows[0]);
     } catch (err) {
@@ -93,6 +115,8 @@ router.put('/:id', auth, async (req, res) => {
         const { rows } = await db.query(queryText, values);
 
         if (rows.length > 0) {
+            // Log this action
+            logActivity(req, 'update_service', `Updated service: ${rows[0].name}`);
             notifyClientsOfUpdate(req);
             res.json(rows[0]);
         } else {
@@ -113,10 +137,19 @@ router.delete('/:id', auth, async (req, res) => {
         return res.status(401).json({ msg: 'Not authorized' });
     }
     try {
+        // Get the service name before deleting for a better log message
+        const serviceResult = await db.query('SELECT name FROM services WHERE id = $1 AND user_id = $2', [serviceId, req.user.id]);
+        if (serviceResult.rows.length === 0) {
+            return res.status(404).json({ msg: 'Service not found or user not authorized.' });
+        }
+        const serviceName = serviceResult.rows[0].name;
+
         const queryText = `DELETE FROM services WHERE id = $1 AND user_id = $2;`;
         const result = await db.query(queryText, [serviceId, req.user.id]);
 
         if (result.rowCount > 0) {
+            // Log this action
+            logActivity(req, 'delete_service', `Deleted service: ${serviceName}`);
             notifyClientsOfUpdate(req);
             res.json({ msg: 'Service removed' });
         } else {
