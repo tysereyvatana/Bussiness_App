@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 
-// --- Modals (Confirmation, Warning, and a new UserModal) ---
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
     if (!isOpen) return null;
     return (
@@ -41,12 +40,11 @@ const UserModal = ({ isOpen, onClose, onSave, user, userRoles, userStatuses }) =
         if (user) {
             setFormData({
                 username: user.username || '',
-                password: '', // Password is only for changing, not displaying
+                password: '',
                 role: user.role || 'Staff',
                 status: user.status || 'Active'
             });
         } else {
-            // Set defaults for a new user
             setFormData({
                 username: '',
                 password: '',
@@ -106,7 +104,6 @@ const UserModal = ({ isOpen, onClose, onSave, user, userRoles, userStatuses }) =
 };
 
 
-// --- Main User Management Page Component ---
 const UserManagementPage = ({ socket, currentUser }) => {
     const [users, setUsers] = useState([]);
     const [totalUsers, setTotalUsers] = useState(0);
@@ -120,6 +117,8 @@ const UserManagementPage = ({ socket, currentUser }) => {
     const [warningModal, setWarningModal] = useState({ isOpen: false, title: '', message: '' });
     const [userRoles, setUserRoles] = useState([]);
     const [userStatuses, setUserStatuses] = useState([]);
+
+    const isAdmin = currentUser.role === 'Admin';
 
     const fetchAllUsers = useCallback(async (searchQuery) => {
         try {
@@ -150,20 +149,22 @@ const UserManagementPage = ({ socket, currentUser }) => {
     }, [socket, searchTerm, fetchAllUsers]);
 
     useEffect(() => {
-        const fetchDropdownData = async () => {
-            try {
-                const [roles, statuses] = await Promise.all([
-                    api.getUserRoles(),
-                    api.getUserStatuses()
-                ]);
-                setUserRoles(roles);
-                setUserStatuses(statuses);
-            } catch (error) {
-                console.error("Failed to fetch user roles/statuses:", error);
-            }
-        };
-        fetchDropdownData();
-    }, []);
+        if (isAdmin) {
+            const fetchDropdownData = async () => {
+                try {
+                    const [roles, statuses] = await Promise.all([
+                        api.getUserRoles(),
+                        api.getUserStatuses()
+                    ]);
+                    setUserRoles(roles);
+                    setUserStatuses(statuses);
+                } catch (error) {
+                    console.error("Failed to fetch user roles/statuses:", error);
+                }
+            };
+            fetchDropdownData();
+        }
+    }, [isAdmin]);
 
     const handleOpenModal = (user = null) => {
         if (user && user.id === currentUser.id) {
@@ -216,9 +217,11 @@ const UserManagementPage = ({ socket, currentUser }) => {
                 <div className="mb-8">
                     <div className="flex justify-between items-center mb-4">
                         <h1 className="text-3xl font-bold text-cyan-400">User Management</h1>
-                        <button onClick={() => handleOpenModal()} className="px-4 py-2 font-bold text-white bg-cyan-600 rounded-md hover:bg-cyan-500">
-                            + Add User
-                        </button>
+                        {isAdmin && (
+                            <button onClick={() => handleOpenModal()} className="px-4 py-2 font-bold text-white bg-cyan-600 rounded-md hover:bg-cyan-500">
+                                + Add User
+                            </button>
+                        )}
                     </div>
                     <div className="max-w-lg">
                         <input
@@ -244,7 +247,7 @@ const UserManagementPage = ({ socket, currentUser }) => {
                                         <th className="px-6 py-3 text-left">Role</th>
                                         <th className="px-6 py-3 text-left">Status</th>
                                         <th className="px-6 py-3 text-left">Date Joined</th>
-                                        <th className="px-6 py-3 text-right">Actions</th>
+                                        {isAdmin && <th className="px-6 py-3 text-right">Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-700">
@@ -262,13 +265,15 @@ const UserManagementPage = ({ socket, currentUser }) => {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-400">{new Date(user.created_at).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 text-right space-x-2">
-                                                <button onClick={() => handleOpenModal(user)} className="text-cyan-400 hover:text-cyan-300">Edit</button>
-                                                <button onClick={() => handleDeleteUser(user)} className="text-red-500 hover:text-red-400">Delete</button>
-                                            </td>
+                                            {isAdmin && (
+                                                <td className="px-6 py-4 text-right space-x-2">
+                                                    <button onClick={() => handleOpenModal(user)} className="text-cyan-400 hover:text-cyan-300">Edit</button>
+                                                    <button onClick={() => handleDeleteUser(user)} className="text-red-500 hover:text-red-400">Delete</button>
+                                                </td>
+                                            )}
                                         </tr>
                                     )) : (
-                                        <tr><td colSpan="5" className="text-center py-10">No users found.</td></tr>
+                                        <tr><td colSpan={isAdmin ? 5 : 4} className="text-center py-10">No users found.</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -279,27 +284,31 @@ const UserManagementPage = ({ socket, currentUser }) => {
                     </div>
                 )}
             </div>
-            <UserModal 
-                isOpen={isModalOpen} 
-                onClose={handleCloseModal} 
-                onSave={handleSaveUser} 
-                user={editingUser}
-                userRoles={userRoles}
-                userStatuses={userStatuses}
-            />
-            <ConfirmationModal 
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                onConfirm={confirmDelete}
-                title="Confirm Deletion"
-                message={`Are you sure you want to delete the user "${userToDelete?.username}"? This action cannot be undone.`}
-            />
-            <WarningModal
-                isOpen={warningModal.isOpen}
-                onClose={() => setWarningModal({ isOpen: false, title: '', message: '' })}
-                title={warningModal.title}
-                message={warningModal.message}
-            />
+            {isAdmin && (
+                <>
+                    <UserModal 
+                        isOpen={isModalOpen} 
+                        onClose={handleCloseModal} 
+                        onSave={handleSaveUser} 
+                        user={editingUser}
+                        userRoles={userRoles}
+                        userStatuses={userStatuses}
+                    />
+                    <ConfirmationModal 
+                        isOpen={isDeleteModalOpen}
+                        onClose={() => setIsDeleteModalOpen(false)}
+                        onConfirm={confirmDelete}
+                        title="Confirm Deletion"
+                        message={`Are you sure you want to delete the user "${userToDelete?.username}"? This action cannot be undone.`}
+                    />
+                    <WarningModal
+                        isOpen={warningModal.isOpen}
+                        onClose={() => setWarningModal({ isOpen: false, title: '', message: '' })}
+                        title={warningModal.title}
+                        message={warningModal.message}
+                    />
+                </>
+            )}
         </div>
     );
 };

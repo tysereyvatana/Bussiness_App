@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const adminAuth = require('../middleware/adminAuth');
 const bcrypt = require('bcryptjs');
 
 const notifyClientsOfUpdate = (req) => {
@@ -10,10 +11,7 @@ const notifyClientsOfUpdate = (req) => {
     }
 };
 
-// --- ADD THIS NEW ROUTE ---
-// @route   GET api/users/roles
-// @desc    Get all possible user roles from the database enum
-router.get('/roles', auth, async (req, res) => {
+router.get('/roles', [auth, adminAuth], async (req, res) => {
     const { db } = req;
     try {
         const { rows } = await db.query(`SELECT unnest(enum_range(NULL::user_role)) AS role;`);
@@ -24,10 +22,7 @@ router.get('/roles', auth, async (req, res) => {
     }
 });
 
-// --- ADD THIS NEW ROUTE ---
-// @route   GET api/users/statuses
-// @desc    Get all possible user statuses from the database enum
-router.get('/statuses', auth, async (req, res) => {
+router.get('/statuses', [auth, adminAuth], async (req, res) => {
     const { db } = req;
     try {
         const { rows } = await db.query(`SELECT unnest(enum_range(NULL::user_status)) AS status;`);
@@ -38,9 +33,6 @@ router.get('/statuses', auth, async (req, res) => {
     }
 });
 
-
-// @route   GET api/users
-// @desc    Get all users with search and total count
 router.get('/', auth, async (req, res) => {
     const { db } = req;
     const { search } = req.query;
@@ -69,9 +61,7 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// @route   PUT api/users/:id
-// @desc    Update a user's role, status, and optionally password
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', [auth, adminAuth], async (req, res) => {
     const { db } = req;
     const { username, password, role, status } = req.body;
     const userIdToUpdate = req.params.id;
@@ -108,9 +98,7 @@ router.put('/:id', auth, async (req, res) => {
     }
 });
 
-// @route   DELETE api/users/:id
-// @desc    Delete a user
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', [auth, adminAuth], async (req, res) => {
     const { db } = req;
     const userIdToDelete = req.params.id;
 

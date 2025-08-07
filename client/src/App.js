@@ -96,8 +96,9 @@ const App = () => {
             case 'chat':
                 return <ChatApp currentUser={user} socket={socketRef.current} />;
             case 'dashboard':
-            default:
-                return <Dashboard currentUser={user} />;
+                default:
+                // Pass the socket instance to the Dashboard for real-time updates.
+                    return <Dashboard currentUser={user} socket={socketRef.current} />;
         }
     };
 

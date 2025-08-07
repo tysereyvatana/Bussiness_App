@@ -131,7 +131,23 @@ export const api = {
         method: 'DELETE',
         headers: getAuthHeaders(),
     }),
+    // --- UPDATE THIS FUNCTION ---
+    // The register function is now used for creating new users by an admin,
+    // so it must send the admin's authentication token.
+    register: (userData) => apiFetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: getAuthHeaders(), // <-- This line was missing
+        body: JSON.stringify(userData),
+    }),    
     // --- ADD THESE NEW FUNCTIONS ---
     getUserRoles: () => apiFetch(`${API_URL}/users/roles`, { headers: getAuthHeaders() }),
     getUserStatuses: () => apiFetch(`${API_URL}/users/statuses`, { headers: getAuthHeaders() }),
+      // --- ADD THIS NEW FUNCTION ---
+    getDashboardStats: () => apiFetch(`${API_URL}/statistics`, {
+       headers: getAuthHeaders(),
+    }),
+    // --- ADD THIS NEW FUNCTION ---
+    getActivities: () => apiFetch(`${API_URL}/activities`, {
+        headers: getAuthHeaders(),
+    }),
 };
