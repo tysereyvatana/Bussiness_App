@@ -56,10 +56,10 @@ router.post('/login', async (req, res) => {
 
 // @route   POST api/auth/register
 // @desc    Register a new user
-// @access  Public
 router.post('/register', async (req, res) => {
     const { db } = req;
-    const { username, password } = req.body;
+    // --- UPDATE THIS LINE to include role and status ---
+    const { username, password, role, status } = req.body;
     try {
         let userResult = await db.query('SELECT * FROM users WHERE username = $1', [username]);
         if (userResult.rows.length > 0) {
@@ -69,9 +69,11 @@ router.post('/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        // --- UPDATE THIS QUERY to insert role and status ---
+        // Use provided role/status, or fallback to defaults.
         const newUserResult = await db.query(
-            'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username',
-            [username, hashedPassword]
+            'INSERT INTO users (username, password, role, status) VALUES ($1, $2, $3, $4) RETURNING id, username, role, status',
+            [username, hashedPassword, role || 'Staff', status || 'Active']
         );
         
         res.json(newUserResult.rows[0]);

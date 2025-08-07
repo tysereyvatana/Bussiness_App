@@ -10,7 +10,8 @@ require('dotenv').config(); // Loads environment variables from a .env file
 const authRoutes = require('./routes/auth');
 const customerRoutes = require('./routes/customers');
 // const messageRoutes = require('./routes/messages'); // You can uncomment this if you use it
-
+const serviceRoutes = require('./routes/services'); // <-- ADD THIS LINE
+const userRoutes = require('./routes/users'); // <-- ADD THIS LINE
 const app = express();
 const server = http.createServer(app);
 
@@ -50,8 +51,8 @@ app.use((req, res, next) => {
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
-// app.use('/api/messages', messageRoutes);
-
+app.use('/api/services', serviceRoutes); // <-- ADD THIS LINE
+app.use('/api/users', userRoutes); // <-- ADD THIS LINE
 
 // --- Socket.IO Connection Handling ---
 io.on('connection', (socket) => {

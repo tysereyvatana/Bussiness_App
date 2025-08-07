@@ -9,23 +9,23 @@ import CustomerPage from './components/CustomerPage';
 import Dashboard from './components/Dashboard';
 import MainLayout from './components/MainLayout';
 import AlertModal from './components/AlertModal';
+import ServicePage from './components/ServicePage';
+import UserManagementPage from './components/UserManagementPage'; // <-- ADD THIS IMPORT
 
 const App = () => {
-    // Initialize state to null. The initial session will be loaded in an effect.
     const [token, setToken] = useState(null);
     const [user, setUser] = useState(null);
-    const [view, setView] = useState('login'); // Default to 'login' view
+    const [view, setView] = useState('login');
     const [alertInfo, setAlertInfo] = useState({ isOpen: false, message: '' });
     const socketRef = useRef(null);
 
-    // This effect runs once on component mount to check for an existing session.
     useEffect(() => {
         const storedToken = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
         if (storedToken && storedUser) {
             setToken(storedToken);
             setUser(JSON.parse(storedUser));
-            setView('dashboard'); // If session exists, go to dashboard
+            setView('dashboard');
         }
     }, []);
 
@@ -60,32 +60,24 @@ const App = () => {
     // --- Top-Level Effect for Socket Connection ---
     useEffect(() => {
         if (token) {
-            console.log('[App.js] Token found, establishing global socket connection...');
             socketRef.current = io('http://localhost:5000', { auth: { token } });
             const socket = socketRef.current;
-
             socket.on('connect', () => console.log(`%c[Socket] App.js Connected: ${socket.id}`, 'color: #00ff00;'));
-            
             socket.on('force_logout', (data) => {
-                console.log(`%c[App.js] Received 'force_logout': ${data.msg}`, 'color: #ffa500; font-weight: bold;');
                 showAlert(data.msg);
             });
-
             return () => {
-                console.log('[App.js] Token removed, disconnecting socket.');
                 socket.disconnect();
             };
         }
     }, [token]);
 
-    // Effect for handling storage events (syncing tabs in the same browser).
     useEffect(() => {
         const handleStorageChange = (e) => {
             if (e.key === 'token' && e.newValue === null) {
                 handleForcedLogout();
             }
         };
-        
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
     }, [handleForcedLogout]);
@@ -94,10 +86,14 @@ const App = () => {
     const renderMainContent = () => {
         switch(view) {
             case 'customers':
-                // Pass the socket instance to the CustomerPage for real-time updates.
-                return <CustomerPage socket={socketRef.current} />;
+                // Pass the current user object to the CustomerPage
+                return <CustomerPage socket={socketRef.current} currentUser={user} />;
+            case 'services':
+                 // Pass the current user object to the ServicePage
+                return <ServicePage socket={socketRef.current} currentUser={user} />;
+            case 'users': // <-- ADD THIS CASE
+                return <UserManagementPage socket={socketRef.current} currentUser={user} />;
             case 'chat':
-                // Pass the socket instance to the ChatApp.
                 return <ChatApp currentUser={user} socket={socketRef.current} />;
             case 'dashboard':
             default:
@@ -108,12 +104,10 @@ const App = () => {
     return (
         <div className="bg-gray-900 text-white min-h-screen font-sans antialiased">
             {token && user ? (
-                // If logged in, show the MainLayout
                 <MainLayout currentUser={user} activeView={view} onNavigate={setView} onLogout={handleGlobalLogout}>
                     {renderMainContent()}
                 </MainLayout>
             ) : (
-                // If logged out, switch between Login and Register screens
                 view === 'register' ? (
                     <RegisterScreen 
                         onRegisterSuccess={() => setView('login')} 
@@ -126,7 +120,6 @@ const App = () => {
                     />
                 )
             )}
-            
             <AlertModal isOpen={alertInfo.isOpen} message={alertInfo.message} onClose={handleForcedLogout} />
         </div>
     );

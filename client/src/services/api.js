@@ -93,4 +93,45 @@ export const api = {
         headers: getAuthHeaders(),
         body: JSON.stringify(message),
     }),
+    // --- ADD THIS SECTION: Service Functions ---
+    getServices: (searchTerm = '') => {
+        const url = searchTerm 
+            ? `${API_URL}/services?search=${encodeURIComponent(searchTerm)}` 
+            : `${API_URL}/services`;
+        return apiFetch(url, { headers: getAuthHeaders() });
+    },
+    addService: (serviceData) => apiFetch(`${API_URL}/services`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(serviceData),
+    }),
+    updateService: (id, serviceData) => apiFetch(`${API_URL}/services/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(serviceData),
+    }),
+    deleteService: (id) => apiFetch(`${API_URL}/services/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    }),
+    // --- ADD THIS SECTION: User Management Functions ---
+    getUsers: (searchTerm = '') => {
+        const url = searchTerm 
+            ? `${API_URL}/users?search=${encodeURIComponent(searchTerm)}` 
+            : `${API_URL}/users`;
+        return apiFetch(url, { headers: getAuthHeaders() });
+    },
+    // Note: Adding a new user still goes through the 'register' endpoint
+    updateUser: (id, userData) => apiFetch(`${API_URL}/users/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(userData),
+    }),
+    deleteUser: (id) => apiFetch(`${API_URL}/users/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    }),
+    // --- ADD THESE NEW FUNCTIONS ---
+    getUserRoles: () => apiFetch(`${API_URL}/users/roles`, { headers: getAuthHeaders() }),
+    getUserStatuses: () => apiFetch(`${API_URL}/users/statuses`, { headers: getAuthHeaders() }),
 };
