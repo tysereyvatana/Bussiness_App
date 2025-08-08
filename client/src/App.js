@@ -11,7 +11,7 @@ import MainLayout from './components/MainLayout';
 import AlertModal from './components/AlertModal';
 import ServicePage from './components/ServicePage';
 import UserManagementPage from './components/UserManagementPage';
-
+import RepairJobPage from './components/RepairJobPage'; // <-- ADD THIS IMPORT
 
 const App = () => {
     const [token, setToken] = useState(null);
@@ -90,6 +90,8 @@ const App = () => {
                 return <CustomerPage socket={socketRef.current} currentUser={user} />;
             case 'services':
                 return <ServicePage socket={socketRef.current} currentUser={user} />;
+            case 'repair_jobs': // <-- ADD THIS CASE
+                return <RepairJobPage socket={socketRef.current} currentUser={user} />;
             case 'users':
                 return <UserManagementPage socket={socketRef.current} currentUser={user} />;
             case 'chat':

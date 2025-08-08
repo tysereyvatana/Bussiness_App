@@ -150,4 +150,26 @@ export const api = {
     getActivities: () => apiFetch(`${API_URL}/activities`, {
         headers: getAuthHeaders(),
     }),
+    // --- ADD THIS SECTION: Repair Job Functions ---
+    getRepairJobs: (searchTerm = '') => {
+        const url = searchTerm 
+            ? `${API_URL}/repair-jobs?search=${encodeURIComponent(searchTerm)}` 
+            : `${API_URL}/repair-jobs`;
+        return apiFetch(url, { headers: getAuthHeaders() });
+    },
+    addRepairJob: (jobData) => apiFetch(`${API_URL}/repair-jobs`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(jobData),
+    }),
+    // --- ADD THESE NEW FUNCTIONS ---
+    updateRepairJob: (id, jobData) => apiFetch(`${API_URL}/repair-jobs/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(jobData),
+    }),
+    deleteRepairJob: (id) => apiFetch(`${API_URL}/repair-jobs/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    }),
 };

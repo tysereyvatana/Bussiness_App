@@ -14,6 +14,7 @@ const serviceRoutes = require('./routes/services'); // <-- ADD THIS LINE
 const userRoutes = require('./routes/users'); // <-- ADD THIS LINE
 const statisticsRoutes = require('./routes/statistics'); // <-- ADD THIS LINE
 const activitiesRoutes = require('./routes/activities'); // <-- ADD THIS LINE
+const repairJobRoutes = require('./routes/repairJobs'); // <-- ADD THIS LINE
 
 const app = express();
 const server = http.createServer(app);
@@ -58,6 +59,7 @@ app.use('/api/services', serviceRoutes); // <-- ADD THIS LINE
 app.use('/api/users', userRoutes); // <-- ADD THIS LINE
 app.use('/api/statistics', statisticsRoutes); // <-- ADD THIS LINE
 app.use('/api/activities', activitiesRoutes); // <-- ADD THIS LINE
+app.use('/api/repair-jobs', repairJobRoutes); // <-- ADD THIS LINE
 
 // --- Socket.IO Connection Handling ---
 io.on('connection', (socket) => {
