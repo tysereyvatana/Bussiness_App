@@ -29,8 +29,7 @@ const OrderDetails = ({ order, formatCurrency }) => (
             {order.items?.map((item, index) => (
                 <li key={item.item_id || index} className="p-2 bg-slate-600/50 rounded-md">
                     <p className="font-semibold text-white">{item.item_name} ({item.item_brand})</p>
-                    <p className="text-xs text-gray-400 mt-1">{item.item_notes}</p>
-                    <ul className="mt-2 pl-4 text-sm border-t border-slate-600 pt-2">
+                    <ul className="mt-1 pl-4 text-sm">
                         {item.services?.map((service, sIndex) => (
                             <li key={sIndex} className="flex justify-between text-gray-400">
                                 <span>- {service.service_name}</span>
@@ -320,6 +319,7 @@ const NewRepairTracker = ({ socket, currentUser }) => {
             if (customersResponse.customers.length > 0 && !newOrder.customer_id) {
                 setNewOrder(prev => ({ ...prev, customer_id: customersResponse.customers[0].id }));
             }
+            // CORRECTED: Set default assigned_to to current user's name
             if (currentUser && !newOrder.assigned_to) {
                 setNewOrder(prev => ({ ...prev, assigned_to: currentUser.username }));
             } else if (usersResponse.users.length > 0 && !newOrder.assigned_to) {
@@ -546,9 +546,9 @@ const NewRepairTracker = ({ socket, currentUser }) => {
                     <StatCard title="Total Items Repaired" value={totalItems} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M9.5 12.5l-2-2.5-3 4.5h11l-2-3-2 2.5z" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 12.5a2 2 0 11-4 0 2 2 0 014 0z" strokeLinecap="round" strokeLinejoin="round"/></svg>} />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Add New Order Form */}
-                    <div className="lg:col-span-2 bg-slate-800 p-6 rounded-xl shadow-lg self-start">
+                    <div className="lg:col-span-1 bg-slate-800 p-6 rounded-xl shadow-lg self-start">
                         <h2 className="text-2xl font-bold mb-4 text-white">Create a New Order</h2>
                         <form onSubmit={handleSubmitOrder} className="space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -602,25 +602,25 @@ const NewRepairTracker = ({ socket, currentUser }) => {
                     </div>
 
                     {/* Order List */}
-                    <div className="lg:col-span-3">
+                    <div className="lg:col-span-2">
                         <h2 className="text-2xl font-bold mb-6 text-white">Current Orders</h2>
-                        <div className="space-y-4">
+                        <div id="orderList" className="space-y-4">
                             {orders.length === 0 ? (
                                 <p className="text-gray-500">No orders logged yet.</p>
                             ) : (
                                 orders.map(order => (
                                     <div key={order.job_id} className="job-card bg-slate-800 rounded-lg shadow-lg border border-slate-700 overflow-hidden">
-                                        <div className="p-4 cursor-pointer" onClick={() => toggleOrderDetails(order.job_id)}>
+                                        <div className="p-4">
                                             <div className="flex justify-between items-start">
-                                                <div>
+                                                <div className="cursor-pointer flex-grow" onClick={() => toggleOrderDetails(order.job_id)}>
                                                     <p className="font-bold text-lg text-white">{order.customer_name}</p>
                                                     <p className="text-sm text-gray-400">{order.items?.length || 0} item(s) &bull; Logged on: {new Date(order.date_received).toLocaleDateString()}</p>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
-                                                     <button onClick={(e) => { e.stopPropagation(); handleEditClick(order); }} className="text-cyan-400 hover:text-cyan-300 p-2 rounded-full hover:bg-slate-700">
+                                                    <button onClick={() => handleEditClick(order)} className="text-cyan-400 hover:text-cyan-300 p-2 rounded-full hover:bg-slate-700">
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg>
                                                     </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteClick(order); }} className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-slate-700">
+                                                    <button onClick={() => handleDeleteClick(order)} className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-slate-700">
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                     </button>
                                                 </div>

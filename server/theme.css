@@ -1,0 +1,35 @@
+/*
+  Define the color palettes for your themes.
+  The ThemeProvider will toggle the 'theme-dark' and 'theme-light'
+  classes on the body element.
+*/
+
+:root {
+    --background-primary: #f1f5f9;
+    --background-secondary: #ffffff;
+    --background-tertiary: #e2e8f0;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --accent-primary: #0ea5e9;
+    --accent-secondary: #38bdf8;
+    --border-color: #cbd5e1;
+  }
+  
+  body.theme-dark {
+    --background-primary: #0f172a;
+    --background-secondary: #1e293b;
+    --background-tertiary: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --accent-primary: #0ea5e9;
+    --accent-secondary: #38bdf8;
+    --border-color: #334155;
+  }
+  
+  /* Apply the base transition */
+  body {
+      background-color: var(--background-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s, color 0.3s;
+  }
+  

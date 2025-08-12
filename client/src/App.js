@@ -11,7 +11,7 @@ import MainLayout from './components/MainLayout';
 import AlertModal from './components/AlertModal';
 import ServicePage from './components/ServicePage';
 import UserManagementPage from './components/UserManagementPage';
-import RepairJobPage from './components/RepairJobPage'; // <-- ADD THIS IMPORT
+import RepairJobPage from './components/RepairJobPage';
 
 const App = () => {
     const [token, setToken] = useState(null);
@@ -30,7 +30,6 @@ const App = () => {
         }
     }, []);
 
-    // --- Authentication & State Management ---
     const handleGlobalLogout = useCallback(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -58,7 +57,6 @@ const App = () => {
         setAlertInfo({ isOpen: true, message: message });
     };
 
-    // --- Top-Level Effect for Socket Connection ---
     useEffect(() => {
         if (token) {
             socketRef.current = io('http://localhost:5000', { auth: { token } });
@@ -83,14 +81,13 @@ const App = () => {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, [handleForcedLogout]);
 
-    // --- View Rendering Logic ---
     const renderMainContent = () => {
         switch(view) {
             case 'customers':
                 return <CustomerPage socket={socketRef.current} currentUser={user} />;
             case 'services':
                 return <ServicePage socket={socketRef.current} currentUser={user} />;
-            case 'repair_jobs': // <-- ADD THIS CASE
+            case 'repair_jobs':
                 return <RepairJobPage socket={socketRef.current} currentUser={user} />;
             case 'users':
                 return <UserManagementPage socket={socketRef.current} currentUser={user} />;
@@ -98,7 +95,6 @@ const App = () => {
                 return <ChatApp currentUser={user} socket={socketRef.current} />;
             case 'dashboard':
             default:
-                // Pass the setView function as the onNavigate prop
                 return <Dashboard currentUser={user} socket={socketRef.current} onNavigate={setView} />;
         }
     };
