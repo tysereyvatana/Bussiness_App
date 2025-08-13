@@ -25,8 +25,6 @@ const getAuthHeaders = () => {
 const apiFetch = async (url, options = {}) => {
     const res = await fetch(url, options);
     if (res.status === 401) {
-        // This means the token is invalid, likely due to a login elsewhere or expiration.
-        // We'll trigger a custom event that the App.js can listen for to force a logout.
         window.dispatchEvent(new Event('force-logout'));
         throw new Error('Session expired. Please log in again.');
     }
@@ -34,7 +32,6 @@ const apiFetch = async (url, options = {}) => {
         const errorData = await res.json().catch(() => ({ msg: 'An unknown API error occurred' }));
         throw new Error(errorData.msg || 'An API error occurred');
     }
-    // Handle responses that might not have a body, like a 204 No Content
     if (res.status === 204) {
         return null;
     }
@@ -51,14 +48,17 @@ export const api = {
     }),
     register: (userData) => apiFetch(`${API_URL}/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(userData),
     }),
 
     // --- Customer Functions ---
-    getCustomers: () => apiFetch(`${API_URL}/customers`, {
-        headers: getAuthHeaders(),
-    }),
+    getCustomers: (searchTerm = '') => {
+        const url = searchTerm 
+            ? `${API_URL}/customers?search=${encodeURIComponent(searchTerm)}` 
+            : `${API_URL}/customers`;
+        return apiFetch(url, { headers: getAuthHeaders() });
+    },
     addCustomer: (customerData) => apiFetch(`${API_URL}/customers`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -73,17 +73,7 @@ export const api = {
         method: 'DELETE',
         headers: getAuthHeaders(),
     }),
-    // --- UPDATE THIS FUNCTION ---
-    getCustomers: (searchTerm = '') => {
-        // Append the search term as a query parameter if it exists
-        const url = searchTerm 
-            ? `${API_URL}/customers?search=${encodeURIComponent(searchTerm)}` 
-            : `${API_URL}/customers`;
-        
-        return apiFetch(url, {
-            headers: getAuthHeaders(),
-        });
-    },
+
     // --- Message Functions ---
     getMessages: () => apiFetch(`${API_URL}/messages`, {
         headers: getAuthHeaders(),
@@ -93,7 +83,8 @@ export const api = {
         headers: getAuthHeaders(),
         body: JSON.stringify(message),
     }),
-    // --- ADD THIS SECTION: Service Functions ---
+
+    // --- Service Functions ---
     getServices: (searchTerm = '') => {
         const url = searchTerm 
             ? `${API_URL}/services?search=${encodeURIComponent(searchTerm)}` 
@@ -114,14 +105,14 @@ export const api = {
         method: 'DELETE',
         headers: getAuthHeaders(),
     }),
-    // --- ADD THIS SECTION: User Management Functions ---
+
+    // --- User Management Functions ---
     getUsers: (searchTerm = '') => {
         const url = searchTerm 
             ? `${API_URL}/users?search=${encodeURIComponent(searchTerm)}` 
             : `${API_URL}/users`;
         return apiFetch(url, { headers: getAuthHeaders() });
     },
-    // Note: Adding a new user still goes through the 'register' endpoint
     updateUser: (id, userData) => apiFetch(`${API_URL}/users/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
@@ -131,26 +122,18 @@ export const api = {
         method: 'DELETE',
         headers: getAuthHeaders(),
     }),
-    // --- UPDATE THIS FUNCTION ---
-    // The register function is now used for creating new users by an admin,
-    // so it must send the admin's authentication token.
-    register: (userData) => apiFetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: getAuthHeaders(), // <-- This line was missing
-        body: JSON.stringify(userData),
-    }),    
-    // --- ADD THESE NEW FUNCTIONS ---
     getUserRoles: () => apiFetch(`${API_URL}/users/roles`, { headers: getAuthHeaders() }),
     getUserStatuses: () => apiFetch(`${API_URL}/users/statuses`, { headers: getAuthHeaders() }),
-      // --- ADD THIS NEW FUNCTION ---
+
+    // --- Statistics and Activity Functions ---
     getDashboardStats: () => apiFetch(`${API_URL}/statistics`, {
        headers: getAuthHeaders(),
     }),
-    // --- ADD THIS NEW FUNCTION ---
     getActivities: () => apiFetch(`${API_URL}/activities`, {
         headers: getAuthHeaders(),
     }),
-    // --- ADD THIS SECTION: Repair Job Functions ---
+
+    // --- Repair Job Functions ---
     getRepairJobs: (searchTerm = '') => {
         const url = searchTerm 
             ? `${API_URL}/repair-jobs?search=${encodeURIComponent(searchTerm)}` 
@@ -162,13 +145,34 @@ export const api = {
         headers: getAuthHeaders(),
         body: JSON.stringify(jobData),
     }),
-    // --- ADD THESE NEW FUNCTIONS ---
     updateRepairJob: (id, jobData) => apiFetch(`${API_URL}/repair-jobs/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(jobData),
     }),
     deleteRepairJob: (id) => apiFetch(`${API_URL}/repair-jobs/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    }),
+
+    // --- CORRECTED: Item Brand Functions ---
+    getItemBrands: (searchTerm = '') => {
+        const url = searchTerm 
+            ? `${API_URL}/item-brands?search=${encodeURIComponent(searchTerm)}` 
+            : `${API_URL}/item-brands`;
+        return apiFetch(url, { headers: getAuthHeaders() });
+    },
+    addItemBrand: (brandData) => apiFetch(`${API_URL}/item-brands`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(brandData),
+    }),
+    updateItemBrand: (id, brandData) => apiFetch(`${API_URL}/item-brands/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(brandData),
+    }),
+    deleteItemBrand: (id) => apiFetch(`${API_URL}/item-brands/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
     }),
